@@ -48,7 +48,7 @@ _convert_template() {
   local __tmp_script=/dev/null
   local __tmp_tmpl=$(mktemp -t sempl.XXXXXX)
   local __escaped_line=''
-  while IFS='' read __line || [[ -n ${__line} ]]; do
+  while IFS='' read -r __line || [[ -n ${__line} ]]; do
     if echo "${__line}" | grep -E -q '^(\s+)?###(\s)?begin'; then
       __in_block=1
       __tmp_script=$(mktemp -t sempl.XXXXXX)
@@ -75,13 +75,10 @@ _convert_template() {
     set -o nounset
     set -o pipefail
   fi
-  eval "echo \"$(cat ${__tmp_tmpl} \
-                   | sed 's/\"/\"\\\"/g' \
-                   | sed 's/</\\</g' \
-                   | sed 's/>/\\>/g')\"" \
-    | sed 's/\\>/>/g' \
-    | sed 's/\\</</g' \
-    > $__sempl_outfile
+  eval 'echo -e '"\"$(cat ${__tmp_tmpl} \
+    | perl -pe "s/\\\\/sprintf '\x5c'/ge" \
+    | perl -pe "s/\"/sprintf '\x22'/ge" \
+  )\"" > $__sempl_outfile
   local __rc=$?
   set +o nounset
   set +o pipefail
